@@ -16,124 +16,52 @@ import java.util.concurrent.TimeUnit;
  */
 public class Game {
 
-    public Game() {
-        for (int i = 0; i < 8; ++i)
-            for (int j = 0; j < 8; ++j)
+    /**
+     * Create a new chess game.
+     *
+     * @param whiteControlled Whether white player is human-controlled (true) or AI (false)
+     * @param blackControlled Whether black player is human-controlled (true) or AI (false)
+     * @param whiteDifficulty AI difficulty for white player (ignored if whiteControlled=true)
+     * @param blackDifficulty AI difficulty for black player (ignored if blackControlled=true)
+     */
+    public Game(boolean whiteControlled, boolean blackControlled, int whiteDifficulty, int blackDifficulty) {
+        // Initialize board positions
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < 8; ++j) {
                 this.positions[i + 8*j] = new Position(new int[] {i, j});
-        System.out.print("White controlled? ");
-        boolean whiteControlled = (new Scanner(System.in)).nextBoolean();
-        this.white = new Player(whiteControlled, true, this);
-        System.out.print("Black controlled? ");
-        boolean blackControlled = (new Scanner(System.in)).nextBoolean();
-        this.black = new Player(blackControlled, false, this);
+            }
+        }
+        
+        // Create players
+        this.white = new Player(whiteControlled, true, this, whiteDifficulty);
+        this.black = new Player(blackControlled, false, this, blackDifficulty);
+        
+        // Set up the board
         this.initialiseBoard();
     }
 
-    public Game(int difficulties) {
-        for (int i = 0; i < 8; ++i)
-            for (int j = 0; j < 8; ++j)
-                this.positions[i + 8*j] = new Position(new int[] {i, j});
-        this.white = new Player(true, this, difficulties);
-        this.black = new Player(false, this, difficulties);
-        this.initialiseBoard();
+    /**
+     * Convenience constructor with default difficulty (3) for AI players.
+     */
+    public Game(boolean whiteControlled, boolean blackControlled) {
+        this(whiteControlled, blackControlled, 3, 3);
     }
 
-    public static void main(String[] args) {
-////        Game.testGame();
-//        System.out.print("Autoplay? ");
-//        boolean autoPlay = (new Scanner(System.in)).nextBoolean();
-//        if (autoPlay) {
-//            Game.autoPlayer();
-//        }
-//        else {
-        System.out.print(System.lineSeparator());
-        Game game = new Game();
-        long startTime = System.nanoTime();
-        Game.playGame(game);
-        long minutes = TimeUnit.NANOSECONDS.toMinutes(System.nanoTime() - startTime);
-        long seconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime) - TimeUnit.NANOSECONDS.toMinutes(System.nanoTime() - startTime) * 60;
-        String duration = minutes + "m" + seconds + "s";
-        System.out.println(duration);
-        System.out.print("Do you want to save this match? ");
-        if ((new Scanner(System.in)).nextBoolean()) {
-            GameSaver.saveGame(game, duration);
-        }
-//        }
+    /**
+     * Convenience constructor for AI vs AI games with same difficulty.
+     */
+    public Game(int difficulty) {
+        this(false, false, difficulty, difficulty);
     }
 
-    private static void autoPlayer() {
-        System.out.println("Runtime: ");
-        int max = (new Scanner(System.in)).nextInt();
-        System.out.println("Player levels: ");
-        int difficulties = (new Scanner(System.in)).nextInt();
-        long begin = TimeUnit.NANOSECONDS.toHours(System.nanoTime());
-        int number = 1;
-        while (TimeUnit.NANOSECONDS.toHours(System.nanoTime()) - begin < max) {
-            System.out.print(System.lineSeparator() + "------------------------------------------------------" + System.lineSeparator() +
-                    System.lineSeparator() + "Game " + number + System.lineSeparator()
-                    + System.lineSeparator() + "------------------------------------------------------" + System.lineSeparator());
-            number++;
-            System.out.println(System.lineSeparator() + "### NEW GAME ###" + System.lineSeparator());
-            Game game = new Game(difficulties);
-            long startTime = System.nanoTime();
-            Game.playGame(game);
-            long minutes = TimeUnit.NANOSECONDS.toMinutes(System.nanoTime() - startTime);
-            long seconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - startTime) - TimeUnit.NANOSECONDS.toMinutes(System.nanoTime() - startTime) * 60;
-            String duration = minutes + "m" + seconds + "s";
-            System.out.println(duration);
-            GameSaver.saveGame(game, duration);
-            System.out.println(System.lineSeparator() + "### GAME OVER ###" + System.lineSeparator());
+
+    public void playGame() {
+        while (!this.isGameOver()) {
+            this.playATurn();
         }
     }
 
-//    private static void testGame() {
-//        Game game = new Game(true);
-//        Pawn testPawnB = new Pawn(game.black, game.getPosition(7, 6));
-//        Pawn testPawnW = new Pawn(game.white, game.getPosition(5, 4));
-//        game.update();
-//        while (!game.isGameOver()) {
-//            System.out.println("testPawnB positions: ");
-//            testPawnB.getPossibleActions().forEach(positions1 -> System.out.println(positions1[1]));
-//            System.out.println("testPawnW positions: ");
-//            testPawnW.getPossibleActions().forEach(positions1 -> System.out.println(positions1[1]));
-////            System.out.println("testPawnW reach: ");
-////            testPawnW.getReach().forEach(System.out::println);
-//            System.out.println("Possible en passant: ");
-//            System.out.println(game.getPossibleEnPassant());
-//            game.playATurn();
-//        }
-//    }
-//
-//    public Game(boolean test) {
-//        for (int i = 0; i < 8; ++i)
-//            for (int j = 0; j < 8; ++j)
-//                this.positions[i + 8*j] = new Position(new int[] {i, j});
-//        this.white = new Player(true, true, this);
-//        this.black = new Player(true, false, this);
-////        SETTING UP THE PAWNS
-//        for (int i = 1; i < 4; ++i) {
-//            new Pawn(this.white, this.getPosition(i, 1));
-//            new Pawn(this.black, this.getPosition(i+3, 6));
-//        }
-////        SETTING UP THE ROOKS
-//        Rook whiteRookA = new Rook(this.white, this.getPosition(0, 0));
-//        Rook whiteRookH = new Rook(this.white, this.getPosition(7, 0));
-//        Rook blackRookA = new Rook(this.black, this.getPosition(0, 7));
-//        Rook blackRookH = new Rook(this.black, this.getPosition(7, 7));
-////        SETTING UP THE KINGS
-//        new King(this.white, this.getPosition(4, 0), whiteRookA, whiteRookH);
-//        new King(this.black, this.getPosition(4, 7), blackRookA, blackRookH);
-////        INITIALISING MOVES
-////        System.out.println(testPawnW.getReach());
-//    }
-
-    private static void playGame(Game game) {
-        while (!game.isGameOver()) {
-            game.playATurn();
-        }
-    }
-
-    private boolean isGameOver() {
+    public boolean isGameOver() {
         return gameOver;
     }
 
@@ -219,14 +147,88 @@ public class Game {
     }
 
     /**
-     * Play a turn.
+     * Play a turn for AI players only.
      */
-    private void playATurn() {
-        TurnAction(this.getPlayerAtPlay());
+    public void playATurn() {
+        if (this.getPlayerAtPlay().isControlled()) {
+            throw new IllegalStateException("Current player is human-controlled. Use makeMove() instead.");
+        }
+        Operation operation = this.getAIPlayerAction(this.getPlayerAtPlay());
+        operation.execute();
+        this.lastPlayedOperation = operation;
+        if (operation instanceof Move) {
+            this.playedActions.add((Move) operation);
+        }
         this.endTurn();
+    }
 
-//        this.getPlayers().forEach(player -> System.out.println(player.toString() + " " + player.evaluate()));
+    /**
+     * Make a move for a human player.
+     * @param startPos Starting position (e.g., "A1")
+     * @param endPos Ending position (e.g., "B2")
+     * @return true if move was successful, false if invalid
+     */
+    public boolean makeMove(String startPos, String endPos) {
+        if (!this.getPlayerAtPlay().isControlled()) {
+            throw new IllegalStateException("Current player is AI-controlled. Use playATurn() instead.");
+        }
+        try {
+            Operation operation = createMoveFromPositions(startPos, endPos);
+            if (operation.isValidActionForPlayer(this.getPlayerAtPlay())) {
+                operation.execute();
+                this.lastPlayedOperation = operation;
+                if (operation instanceof Move) {
+                    this.playedActions.add((Move) operation);
+                }
+                this.endTurn();
+                return true;
+            }
+        } catch (Exception e) {
+            // Invalid move
+        }
+        return false;
+    }
 
+    /**
+     * Perform undo operation.
+     * @return true if undo was successful
+     */
+    public boolean undoMove() {
+        if (!this.getPlayerAtPlay().isControlled()) {
+            return false;
+        }
+        try {
+            Operation undo = new Undo(this);
+            if (undo.isValidActionForPlayer(this.getPlayerAtPlay())) {
+                undo.execute();
+                this.lastPlayedOperation = undo;
+                this.endTurn();
+                return true;
+            }
+        } catch (Exception e) {
+            // Undo failed
+        }
+        return false;
+    }
+
+    /**
+     * Resign current player.
+     * @return true if resignation was successful
+     */
+    public boolean resignPlayer() {
+        if (!this.getPlayerAtPlay().isControlled()) {
+            return false;
+        }
+        try {
+            Operation resign = new Resign(this.getPlayerAtPlay());
+            resign.execute();
+            this.lastPlayedOperation = resign;
+            this.endTurn();
+            return true;
+        } catch (Exception e) {
+            // Resignation failed
+        }
+        return false;
     }
 
     /**
@@ -274,7 +276,7 @@ public class Game {
         if (this.winner != null){
             this.setGameOver();
             this.setTurnsToBeRewound(0);
-            System.out.println(this.winner.getName() + " wins after " + this.getTurn() + " turns");
+            this.gameEndMessage = this.winner.getName() + " wins after " + this.getTurn() + " turns";
             return;
         }
         // Check for remise
@@ -287,17 +289,22 @@ public class Game {
                 return;
             }
         }
-        System.out.println("Game goes in remise after " + this.getTurn() + " turns");
+        this.gameEndMessage = "Game goes in remise after " + this.getTurn() + " turns";
         this.setGameOver();
         this.setTurnsToBeRewound(8);
     }
 
 
-    Player getWinner() {
+    public Player getWinner() {
         return winner;
     }
 
+    public String getGameEndMessage() {
+        return gameEndMessage;
+    }
+
     private Player winner = null;
+    private String gameEndMessage = null;
 
 
     public Position getPosition(int x, int y) {
@@ -476,91 +483,58 @@ public class Game {
     }
 
 
-    /**
-     * Determines the action the active player makes
-     *
-     * @param playingPlayer
-     *          The player who's next action is determined.
-     */
-    private void TurnAction(Player playingPlayer){
-        Operation operation = null;
-        while (operation == null || !operation.isValidActionForPlayer(playingPlayer)) {
-            if (playingPlayer.isControlled()) {
-                operation = this.inputConverter(playingPlayer);
-            }
-            else {
-                int depth = playingPlayer.getDifficulty()
-                        + Math.max(0, 8 - (this.getPlayers().stream().mapToInt(player -> (int) player.getPieces().stream()
-                        .filter(piece -> !(piece instanceof Pawn)).count()).sum()
-                        + this.getPlayers().stream().mapToInt(player -> (int) player.getPieces().stream()
-                        .filter(piece -> piece instanceof Pawn).count()).sum() / 3));
-                NegaMaxReturn output = playingPlayer.alphaBeta(Double.NEGATIVE_INFINITY,
-                        Double.POSITIVE_INFINITY, depth);
-                Position[] result = output.getAction();
-                if (result[0].getOccupyingPiece() instanceof King &&
-                        Math.abs(result[1].getCoordinates()[0]
-                                - result[0].getCoordinates()[0]) > 1.1) { // Check if output is castle move
-                    operation = new Castle(result);
-                } else if (result[0].getOccupyingPiece() instanceof Pawn // Check if output is en passant move
-                        && result[1].getCoordinates()[1] == result[0].getCoordinates()[1] + ((Pawn) result[0].getOccupyingPiece()).getDirection()
-                        && Math.abs(result[1].getCoordinates()[0] - result[0].getCoordinates()[0]) > 0.5
-                        && Piece.nooneOnTile(result[1])) {
-                    operation = new EnPassant(result);
-                } else {
-                    operation = new Move(result);
-                }
-
-            }
+    private Operation createMoveFromPositions(String startPos, String endPos) {
+        startPos = startPos.toUpperCase();
+        endPos = endPos.toUpperCase();
+        
+        Position startingPosition = this.getPosition((startPos.charAt(0) - 'A'), startPos.charAt(1) - '1');
+        Position endPosition = this.getPosition((endPos.charAt(0) - 'A'), endPos.charAt(1) - '1');
+        
+        if (startingPosition.getOccupyingPiece() instanceof King &&
+                Math.abs(endPosition.getCoordinates()[0]
+                        - startingPosition.getCoordinates()[0]) > 1.1) {
+            return new Castle(startingPosition, endPosition);
         }
-//        try {
-            operation.execute();
-            System.out.println(operation);
-            if (operation instanceof Move) {
-                this.playedActions.add((Move) operation);
-            }
-//        } catch (Exception e) {
-//            System.out.println(Arrays.toString(e.getStackTrace()));
-//            this.ArnoldStyle(playingPlayer);
-//        }
-    }
-
-    private Operation inputConverter(Player playingPlayer) {
-        System.out.print("Enter starting position: ");
-        String start = (new Scanner(System.in)).next().toUpperCase();
-        if (start.equals("UNDO")) {
-            return new Undo(this);
+        else if (startingPosition.getOccupyingPiece() instanceof Pawn
+                && endPosition.getCoordinates()[1] == startingPosition.getCoordinates()[1] + ((Pawn) startingPosition.getOccupyingPiece()).getDirection()
+                && Math.abs(endPosition.getCoordinates()[0] - startingPosition.getCoordinates()[0]) > 0.5
+                && Piece.nooneOnTile(endPosition)) {
+            return new EnPassant(startingPosition, endPosition);
         }
-        else if (start.equals("RESIGN")) {
-            return new Resign(this.getPlayerAtPlay());
-        }
-        System.out.print("Enter ending position: ");
-        String end = (new Scanner(System.in)).next();
-        try {
-            Move move;
-            Position startingPosition = this.getPosition((start.charAt(0) - 'A'), start.charAt(1) - '1');
-            Position endPosition = this.getPosition((end.charAt(0) - 'A' ), end.charAt(1) - '1');
-            if (startingPosition.getOccupyingPiece() instanceof King &&
-                    Math.abs(endPosition.getCoordinates()[0]
-                            - startingPosition.getCoordinates()[0]) > 1.1) {
-                move = new Castle(startingPosition, endPosition);
-            }
-            else if (startingPosition.getOccupyingPiece() instanceof Pawn
-                    && endPosition.getCoordinates()[1] == startingPosition.getCoordinates()[1] + ((Pawn) startingPosition.getOccupyingPiece()).getDirection()
-                    && Math.abs(endPosition.getCoordinates()[0] - startingPosition.getCoordinates()[0]) > 0.5
-                    && Piece.nooneOnTile(endPosition)) {
-                move = new EnPassant(startingPosition, endPosition);
-            }
-            else {
-                move = new Move(startingPosition, endPosition);
-            }
-            if (!move.isValidActionForPlayer(playingPlayer)) {
-                throw new IllegalArgumentException();
-            }
-            return move;
-        } catch (Exception e) {
-            System.out.println("Wrong input, try again!");
-            return inputConverter(playingPlayer);
+        else {
+            return new Move(startingPosition, endPosition);
         }
     }
+
+    private Operation getAIPlayerAction(Player playingPlayer) {
+        int depth = playingPlayer.getDifficulty()
+                + Math.max(0, 8 - (this.getPlayers().stream().mapToInt(player -> (int) player.getPieces().stream()
+                .filter(piece -> !(piece instanceof Pawn)).count()).sum()
+                + this.getPlayers().stream().mapToInt(player -> (int) player.getPieces().stream()
+                .filter(piece -> piece instanceof Pawn).count()).sum() / 3));
+        NegaMaxReturn output = playingPlayer.alphaBeta(Double.NEGATIVE_INFINITY,
+                Double.POSITIVE_INFINITY, depth);
+        Position[] result = output.getAction();
+        if (result[0].getOccupyingPiece() instanceof King &&
+                Math.abs(result[1].getCoordinates()[0]
+                        - result[0].getCoordinates()[0]) > 1.1) { // Check if output is castle move
+            return new Castle(result);
+        } else if (result[0].getOccupyingPiece() instanceof Pawn // Check if output is en passant move
+                && result[1].getCoordinates()[1] == result[0].getCoordinates()[1] + ((Pawn) result[0].getOccupyingPiece()).getDirection()
+                && Math.abs(result[1].getCoordinates()[0] - result[0].getCoordinates()[0]) > 0.5
+                && Piece.nooneOnTile(result[1])) {
+            return new EnPassant(result);
+        } else {
+            return new Move(result);
+        }
+    }
+
+
+    public Operation getLastPlayedOperation() {
+        return lastPlayedOperation;
+    }
+
+    private Operation lastPlayedOperation = null;
+
 
 }

@@ -15,61 +15,47 @@ import java.util.stream.Collectors;
 public class Player {
 
     /**
-     * Initiate a new Player.
+     * Create a new Player.
      *
-     * @param   controlled
-     *              Whether or not this new player will be controlled, or be operated by a computer algorithm.
-     * @param   white
-     *              Whether or not this player is the white player.
-     * @param   game
-     *              The game in which this player plays.
+     * @param controlled Whether this player is human-controlled (true) or AI (false)
+     * @param white Whether this player plays white (true) or black (false)
+     * @param game The game this player belongs to
+     * @param difficulty AI difficulty level (ignored if controlled=true)
      */
-    public Player(boolean controlled, boolean white, Game game) {
+    public Player(boolean controlled, boolean white, Game game, int difficulty) {
         this.controlled = controlled;
         this.white = white;
         this.game = game;
-        this.opponent = this.getGame().getPlayers().stream().filter(player -> player != this).collect(Collectors.toList()).get(0);
-        if (this.opponent != null)
+        
+        // Set up opponent relationship
+        this.opponent = this.getGame().getPlayers().stream()
+            .filter(player -> player != this)
+            .collect(Collectors.toList())
+            .get(0);
+        if (this.opponent != null) {
             this.opponent.opponent = this;
-        if (this.isWhite()) {
-            this.colour = "White";
         }
-        else {
-            this.colour = "Black";
-        }
+        
+        // Set color
+        this.colour = this.isWhite() ? "White" : "Black";
+        
+        // Set name and difficulty
         if (this.isControlled()) {
-            System.out.print("Name of player: ");
-            this.name = (new Scanner(System.in)).nextLine();
-        }
-        else {
-            this.name = this.getColour();
-            while (!this.isValidDifficulty(this.getDifficulty())) {
-                System.out.print(this.getName() + " difficulty? ");
-                try {
-                    this.setDifficulty((new Scanner(System.in)).nextInt());
-                } catch (IllegalArgumentException ignored) {}
+            this.name = this.getColour() + " Player";
+        } else {
+            if (!this.isValidDifficulty(difficulty)) {
+                throw new IllegalArgumentException("Invalid difficulty: " + difficulty);
             }
+            this.name = this.getColour();
+            this.difficulty = difficulty;
         }
     }
 
-    public Player(boolean white, Game game, int difficulty) {
-        if (!this.isValidDifficulty(difficulty)) {
-            throw new IllegalArgumentException();
-        }
-        this.controlled = false;
-        this.white = white;
-        this.game = game;
-        this.opponent = this.getGame().getPlayers().stream().filter(player -> player != this).collect(Collectors.toList()).get(0);
-        if (this.opponent != null)
-            this.opponent.opponent = this;
-        this.difficulty = difficulty;
-        if (this.isWhite()) {
-            this.colour = "White";
-        }
-        else {
-            this.colour = "Black";
-        }
-        this.name = this.getColour();
+    /**
+     * Convenience constructor for human players (uses default difficulty for AI)
+     */
+    public Player(boolean controlled, boolean white, Game game) {
+        this(controlled, white, game, 3); // Default difficulty
     }
 
     /**
