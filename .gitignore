@@ -1,0 +1,10 @@
+# First, ignore everything
+*
+# Now, whitelist anything that's a directory
+!*/
+# Whitelist src directories
+!**/src/
+# File types you're interested in.
+!*.java
+!.gitignore
+!README.md
